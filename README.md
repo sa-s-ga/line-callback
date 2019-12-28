@@ -1,145 +1,120 @@
-# LINE Messaging API SDK for Java
+Heroku buildpack for Java [![Build Status](https://travis-ci.org/heroku/heroku-buildpack-java.svg)](https://travis-ci.org/heroku/heroku-buildpack-java)
+=========================
 
-[![Build Status](https://travis-ci.org/line/line-bot-sdk-java.svg?branch=master)](https://travis-ci.org/line/line-bot-sdk-java)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.linecorp.bot/line-bot-model/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.linecorp.bot/line-bot-model)
-[![javadoc](https://javadoc.io/badge2/com.linecorp.bot/line-bot-model/javadoc.svg)](https://javadoc.io/doc/com.linecorp.bot/line-bot-model)
-[![codecov](https://codecov.io/gh/line/line-bot-sdk-java/branch/master/graph/badge.svg)](https://codecov.io/gh/line/line-bot-sdk-java)
+![java](https://cloud.githubusercontent.com/assets/871315/20325947/f3544014-ab43-11e6-9c51-8240ce161939.png)
 
+This is the official [Heroku buildpack](http://devcenter.heroku.com/articles/buildpack) for Java apps.
+It uses Maven 3.6.2 to build your application and OpenJDK 8 to run it. However, the JDK version can be configured as described below.
 
-## Introduction
+## How it works
 
-The LINE Messaging API SDK for Java makes it easy to develop bots using LINE Messaging API, and you can create a sample bot within minutes.
-
+The buildpack will detect your app as Java if it has a `pom.xml` file, or one of the other POM formats supports by the [Maven Polyglot](https://github.com/takari/polyglot-maven) plugin, in its root directory.  It will use Maven to execute the build defined by your `pom.xml` and download your dependencies. The `.m2` folder (local maven repository) will be cached between builds for faster dependency resolution. However neither the `mvn` executable nor the `.m2` folder will be available in your slug at runtime.
 
 ## Documentation
 
-See the official API documentation for more information.
+For more information about using Java and buildpacks on Heroku, see these Dev Center articles:
 
-- English: https://developers.line.biz/en/docs/messaging-api/overview/
-- Japanese: https://developers.line.biz/ja/docs/messaging-api/overview/
+*  [Heroku Java Support](https://devcenter.heroku.com/articles/java-support)
+*  [Introduction to Heroku for Java Developers](https://devcenter.heroku.com/articles/intro-for-java-developers)
+*  [Deploying Tomcat-based Java Web Applications with Webapp Runner](https://devcenter.heroku.com/articles/java-webapp-runner)
+*  [Deploy a Java Web Application that launches with Jetty Runner](https://devcenter.heroku.com/articles/deploy-a-java-web-application-that-launches-with-jetty-runner)
+*  [Using a Custom Maven Settings File](https://devcenter.heroku.com/articles/using-a-custom-maven-settings-xml)
+*  [Using Grunt with Java and Maven to Automate JavaScript Tasks](https://devcenter.heroku.com/articles/using-grunt-with-java-and-maven-to-automate-javascript-tasks)
 
+## Examples
 
-## Requirements
+* [Tomcat Webapp-Runner Example](https://github.com/kissaten/webapp-runner-minimal)
+* [Spring Boot Example](https://github.com/kissaten/spring-boot-heroku-demo)
 
-This library requires Java 8 or later.
+## Configuration
 
+### Choose a JDK
 
-## Installation
+Create a `system.properties` file in the root of your project directory and set `java.runtime.version=1.8`.
 
-We've uploaded this library to the Maven Central Repository. You can install the modules using Maven or Gradle.
+Example:
 
-http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.linecorp.bot%22
+    $ ls
+    Procfile pom.xml src
 
+    $ echo "java.runtime.version=1.8" > system.properties
 
-## Modules
+    $ git add system.properties && git commit -m "Java 8"
 
-This project contains the following modules:
+    $ git push heroku master
+    ...
+    -----> Java app detected
+    -----> Installing OpenJDK 1.8... done
+    -----> Installing Maven 3.3.3... done
+    ...
 
- * line-bot-api-client: API client library for the Messaging API
- * line-bot-model: Model classes for the Messaging API
- * line-bot-servlet: Java servlet utilities for bot servers
- * line-bot-spring-boot: Spring Boot auto configuration library for bot servers
+### Choose a Maven Version
 
-This project contains the following sample projects:
+You can define a specific version of Maven for Heroku to use by adding the
+[Maven Wrapper](https://github.com/takari/maven-wrapper) to your project. When
+this buildpack detects the presence of a `mvnw` script and a `.mvn` directory,
+it will run the Maven Wrapper instead of the default `mvn` command.
 
- * sample-spring-boot-echo: A simple echo server. It includes a Heroku button.
- * sample-spring-boot-kitchensink: Full featured sample code.
+If you need to override this, the `system.properties` file also allows for a `maven.version` entry
+(regardless of whether you specify a `java.runtime.version` entry). For example:
 
-
-## Spring Boot integration
-
-The line-bot-spring-boot module lets you build a bot application as a Spring Boot application.
-
-```java
-/*
- * Copyright 2016 LINE Corporation
- *
- * LINE Corporation licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
-package com.example.bot.spring.echo;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import com.linecorp.bot.model.event.Event;
-import com.linecorp.bot.model.event.MessageEvent;
-import com.linecorp.bot.model.event.message.TextMessageContent;
-import com.linecorp.bot.model.message.TextMessage;
-import com.linecorp.bot.spring.boot.annotation.EventMapping;
-import com.linecorp.bot.spring.boot.annotation.LineMessageHandler;
-
-@SpringBootApplication
-@LineMessageHandler
-public class EchoApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(EchoApplication.class, args);
-    }
-
-    @EventMapping
-    public TextMessage handleTextMessageEvent(MessageEvent<TextMessageContent> event) {
-        System.out.println("event: " + event);
-        return new TextMessage(event.getMessage().getText());
-    }
-
-    @EventMapping
-    public void handleDefaultMessageEvent(Event event) {
-        System.out.println("event: " + event);
-    }
-}
+```
+java.runtime.version=1.8
+maven.version=3.3.9
 ```
 
-## How do I use a proxy server?
+### Customize Maven
 
-You can use `LineMessagingServiceBuilder` to configure a proxy server. It accepts your own OkHttpBuilder instance.
+There are three config variables that can be used to customize the Maven execution:
 
-Note: You don't need to use an add-on like Fixie to have static IP addresses for proxy servers. You can make API calls without entering IP addresses on the server IP whitelist.
++ `MAVEN_CUSTOM_GOALS`: set to `clean dependency:list install` by default
++ `MAVEN_CUSTOM_OPTS`: set to `-DskipTests` by default
++ `MAVEN_JAVA_OPTS`: set to `-Xmx1024m` by default
 
+These variables can be set like this:
 
-## Help and media
-FAQ: https://developers.line.biz/en/faq/
+```sh-session
+$ heroku config:set MAVEN_CUSTOM_GOALS="clean package"
+$ heroku config:set MAVEN_CUSTOM_OPTS="--update-snapshots -DskipTests=true"
+$ heroku config:set MAVEN_JAVA_OPTS="-Xss2g"
+```
 
-Community Q&A: https://www.line-community.me/questions
+Other options are available for [defining a custom `settings.xml` file](https://devcenter.heroku.com/articles/using-a-custom-maven-settings-xml).
 
-News: https://developers.line.biz/en/news/
+## Development
 
-Twitter: [@LINE_DEV](https://twitter.com/LINE_DEV)
+To make changes to this buildpack, fork it on Github. Push up changes to your fork, then create a new Heroku app to test it, or configure an existing app to use your buildpack:
 
+```
+# Create a new Heroku app that uses your buildpack
+heroku create --buildpack <your-github-url>
 
-## Versioning
+# Configure an existing Heroku app to use your buildpack
+heroku buildpacks:set <your-github-url>
 
-This project respects semantic versioning.
+# You can also use a git branch!
+heroku buildpacks:set <your-github-url>#your-branch
+```
 
-See http://semver.org/.
+For example if you want to have Maven available to use at runtime in your application, you can copy it from the cache directory to the build directory by adding the following lines to the compile script:
 
+    for DIR in ".m2" ".maven" ; do
+      cp -r $CACHE_DIR/$DIR $BUILD_DIR/$DIR
+    done
 
-## Contributing
+This will copy the local Maven repo and Maven binaries into your slug.
 
-Please check [CONTRIBUTING](CONTRIBUTING.md) before making a contribution.
+Commit and push the changes to your buildpack to your GitHub fork, then push your sample app to Heroku to test. Once the push succeeds you should be able to run:
 
+    $ heroku run bash
 
-## License
+and then:
 
-    Copyright (C) 2016 LINE Corp.
+    $ ls -al
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+and you'll see the `.m2` and `.maven` directories are now present in your slug.
 
-       http://www.apache.org/licenses/LICENSE-2.0
+License
+-------
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+Licensed under the MIT License. See LICENSE file.
